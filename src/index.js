@@ -33,7 +33,16 @@ window.speechSynthesis.onvoiceschanged = function () {
 		Actions.getTTSLangText(speechSynthesisVoices);
 		Actions.initialiseTTSVoices(speechSynthesisVoices);
 	}
+var recognition = new SpeechRecognition();
+
+recognition.onsoundend = function() {
+  var color = event.results[0][0].transcript;
+  diagnostic.textContent = 'Result received: ' + color + '.';
+  bg.style.backgroundColor = color;
+}
+
 };
+
 
 ReactDOM.render(
 	<IntlProvider locale={defaultPrefLanguage}>
