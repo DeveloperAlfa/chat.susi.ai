@@ -8,6 +8,7 @@ import MessageStore from '../stores/MessageStore';
 import * as Actions from './HardwareConnect.actions';
 import * as SettingsActions from './Settings.actions';
 
+
 const cookies = new Cookies();
 let ActionTypes = ChatConstants.ActionTypes;
 let _Location = null;
@@ -65,7 +66,7 @@ export function createSUSIMessage(createdMessage, currentThreadID, voice) {
     };
 
   let defaults = UserPreferencesStore.getPreferences();
-  console.log(defaults);
+
   let defaultServerURL = defaults.Server;
   let BASE_URL = '';
   if(cookies.get('serverUrl')===defaultServerURL||
@@ -95,7 +96,7 @@ export function createSUSIMessage(createdMessage, currentThreadID, voice) {
   if(_Location){
     url += '&latitude='+_Location.lat+'&longitude='+_Location.lng;
   }
-  console.log(url);
+
   // Ajax Success calls the Dispatcher to CREATE_SUSI_MESSAGE only when the User is online
   if(!offlineMessage){
   $.ajax({
