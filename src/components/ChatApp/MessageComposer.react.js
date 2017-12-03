@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import Send from 'material-ui/svg-icons/content/send';
 import Mic from 'material-ui/svg-icons/av/mic';
 import UserPreferencesStore from '../../stores/UserPreferencesStore';
+import MessageStore from '../../stores/MessageStore';
 import IconButton from 'material-ui/IconButton';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import VoiceRecognition from './VoiceRecognition';
@@ -14,6 +15,8 @@ import TextareaAutosize from 'react-textarea-autosize';
 injectTapEventPlugin();
 
 let ENTER_KEY_CODE = 13;
+let UP_KEY_CODE = 38;
+let DOWN_KEY_CODE = 40;
 const style = {
   mini: true,
   bottom: '14px',
@@ -51,9 +54,9 @@ class MessageComposer extends Component {
       open: false,
       result: '',
       animate: false,
-
-      rows: 1
-
+      rows: 1,
+      recognizing: false,
+      currentArrowIndex:0// store the index for moving through messages using key
     };
     this.rowComplete = 0;
     this.numberoflines = 0;
@@ -72,8 +75,10 @@ class MessageComposer extends Component {
     })
   }
 
-  onspeechend = () => {
-    this.onEnd();
+  onSpeechStart = () => {
+    this.setState({
+      recognizing: true
+    });
   }
 
   onEnd = () => {
@@ -82,7 +87,8 @@ class MessageComposer extends Component {
       stop: false,
       open: false,
       animate: false,
-      color: '#000'
+      color: '#000',
+      recognizing: false
     });
 
     let voiceResponse = false;
@@ -128,6 +134,7 @@ class MessageComposer extends Component {
     }
 
   }
+
 
   componentWillMount() {
     let micInputSetting = UserPreferencesStore.getMicInput();
@@ -180,11 +187,10 @@ class MessageComposer extends Component {
   }
 
   componentDidMount() {
-    document.getElementById('scroll').focus();
+
   }
 
   render() {
-
     return (
       <div className="message-composer" >
         {this.state.start && (
@@ -193,13 +199,14 @@ class MessageComposer extends Component {
             onspeechend={this.onspeechend}
             onResult={this.onResult}
             onEnd={this.onEnd}
+            onSpeechStart={this.onSpeechStart}
             continuous={true}
             lang="en-US"
             stop={this.state.stop}
           />
         )}
         <div className="textBack" style={{ backgroundColor: this.props.textarea }}>
-          {/* TextareaAutosize node packge used to get
+          {/* TextareaAutosize node package used to get
           the auto sizing feature of the chat message composer */}
           <TextareaAutosize
             className='scroll'
@@ -211,13 +218,14 @@ class MessageComposer extends Component {
             onChange={this._onChange.bind(this)}
             onKeyDown={this._onKeyDown.bind(this)}
             ref={(textarea) => { this.nameInput = textarea; }}
-            style={{ background: this.props.textarea, lineHeight: '15px' }}
+            style={{ background: this.props.textarea, color: this.props.textcolor, lineHeight: '15px' }}
+            autoFocus={this.props.focus}
           />
         </div>
         <IconButton
           className="send_button"
           iconStyle={{
-            fill: UserPreferencesStore.getTheme() === 'light' ? '#4285f4' : '#fff',
+            fill: this.props.micColor,
             margin: '1px 0px 1px 0px'
           }}
           onTouchTap={this._onClickButton.bind(this)}
@@ -270,8 +278,13 @@ class MessageComposer extends Component {
       if (this.speechRecog) {
         this.Button = <Mic />
       }
-      this.setState({ text: '' });
+      this.setState({ text: '',currentArrowIndex:0 });
     }
+    setTimeout(function(){
+      if(this.state.recognizing === false) {
+        this.speakDialogClose();
+      }
+    }.bind(this),5000);
   }
 
   _onChange(event, value) {
@@ -286,7 +299,7 @@ class MessageComposer extends Component {
     else {
       this.Button = <Send />
     }
-    this.setState({ text: event.target.value });
+    this.setState({ text: event.target.value,currentArrowIndex:0 });
   }
 
   _onKeyDown(event) {
@@ -300,12 +313,55 @@ class MessageComposer extends Component {
         if (text) {
           Actions.createMessage(text, this.props.threadID, this.props.speechOutputAlways);
         }
-        this.setState({ text: '' });
+        this.setState({ text: '',currentArrowIndex:0 });
         if (this.speechRecog) {
           this.Button = <Mic />
         }
       }
     }
+    else if(event.keyCode===UP_KEY_CODE){
+        event.preventDefault();
+        const messages=MessageStore.getAllForCurrentThread();
+        let currentArrowIndex = this.state.currentArrowIndex;
+        let curIndex=0;
+        for(let i=messages.length-1;i>=0;i--){
+          let obj=messages[i];
+          if(obj.authorName==='You'){
+            if(curIndex===currentArrowIndex){
+              this.setState({text:obj.text,currentArrowIndex:currentArrowIndex+1});
+              currentArrowIndex++;
+              break;
+            }
+            curIndex++;
+          }
+        }
+        this.setState({currentArrowIndex});
+    }
+    else if(event.keyCode===DOWN_KEY_CODE){
+        event.preventDefault();
+        const messages=MessageStore.getAllForCurrentThread();
+        let currentArrowIndex = this.state.currentArrowIndex;
+        let curIndex=0;
+        if(currentArrowIndex<=1){
+          // empty text field
+          this.setState({text:'',currentArrowIndex:0})
+        }
+        else{
+        for(let i=messages.length-1;i>=0;i--){
+          let obj=messages[i];
+          if(obj.authorName==='You'){
+            if(curIndex===currentArrowIndex-2){
+              this.setState({text:obj.text,currentArrowIndex:currentArrowIndex+1});
+              currentArrowIndex--;
+              break;
+            }
+            curIndex++;
+          }
+        }
+        this.setState({currentArrowIndex});
+      }
+    }
+
   }
 
 };
@@ -314,8 +370,11 @@ MessageComposer.propTypes = {
   threadID: PropTypes.string.isRequired,
   dream: PropTypes.string,
   textarea: PropTypes.string,
+  textcolor: PropTypes.string,
   speechOutput: PropTypes.bool,
   speechOutputAlways: PropTypes.bool,
+  micColor: PropTypes.string,
+  focus: PropTypes.bool,
 };
 
 export default MessageComposer;

@@ -22,9 +22,14 @@ import Translate from '../../Translate/Translate.react';
 
 function getStateFromStores() {
   var themeValue=[];
+  var backgroundValue = [];
   // get Theme data from server
   if(UserPreferencesStore.getThemeValues()){
     themeValue=UserPreferencesStore.getThemeValues().split(',');
+  }
+
+  if(UserPreferencesStore.getBackgroundImage()){
+    backgroundValue=UserPreferencesStore.getBackgroundImage().split(',');
   }
   return {
     SnackbarOpen: false,
@@ -47,10 +52,11 @@ function getStateFromStores() {
     composer: themeValue.length>5?'#'+themeValue[3]:'#f5f4f6',
     textarea:  themeValue.length>5?'#'+themeValue[4]:'#fff',
     button: themeValue.length>5? '#'+themeValue[5]:'#4285f4',
-    bodyBackgroundImage:'',
+    bodyBackgroundImage : backgroundValue.length>1 ? backgroundValue[0] : '',
     snackopen: false,
     snackMessage: 'It seems you are offline!',
-    messageBackgroundImage:'',
+    SnackbarOpenSearchResults:false,
+    messageBackgroundImage : backgroundValue.length>1 ? backgroundValue[1] : '',
     showScrollBottom: false,
     searchState: {
       markedMsgs: [],
@@ -64,7 +70,6 @@ function getStateFromStores() {
       searchText:'',
     }
   };
-
 }
 
 function getMessageListItem(messages, showLoading, markID) {
@@ -102,7 +107,7 @@ function getMessageListItem(messages, showLoading, markID) {
   });
 }
 
-// markdown serch results
+// markdown search results
 function searchMsgs(messages, matchString, isCaseSensitive) {
   let markingData = {
     allmsgs: [],
@@ -176,7 +181,6 @@ class MessageSection extends Component {
       'button':this.state.button.substring(1)
 
     };
-
   }
 
   handleColorChange = (name,color) => {
@@ -193,11 +197,11 @@ class MessageSection extends Component {
 
   // get the selected custom colour
   handleChangeComplete = (name, color) => {
-    this.setState({'theme':'custom'})
+    this.setState({currTheme : 'custom'})
     let currSettings = UserPreferencesStore.getPreferences();
     let settingsChanged = {};
     if(currSettings.Theme !=='custom'){
-      settingsChanged.Theme = 'custom';
+      settingsChanged.theme = 'custom';
       Actions.settingsChanged(settingsChanged);
     }
      // Send these Settings to Server
@@ -240,7 +244,8 @@ class MessageSection extends Component {
   handleOpen = () => {
     this.setState({
       showLogin: true,
-      showSignUp: false
+      showSignUp: false,
+      openForgotPassword: false
     });
     this.child.closeOptions();
   }
@@ -321,12 +326,58 @@ class MessageSection extends Component {
   }
   // Close all dialog boxes
   handleClose = () => {
+    var prevThemeSettings=this.state.prevThemeSettings;
     this.setState({
       showLogin: false,
       showSignUp: false,
       showThemeChanger: false,
       openForgotPassword: false
     });
+
+    if(prevThemeSettings && prevThemeSettings.hasOwnProperty('currTheme') && prevThemeSettings.currTheme==='custom'){
+      this.setState({
+        currTheme:prevThemeSettings.currTheme,
+        body:prevThemeSettings.bodyColor,
+        header:prevThemeSettings.TopBarColor,
+        composer:prevThemeSettings.composerColor,
+        pane:prevThemeSettings.messagePane,
+        textarea:prevThemeSettings.textArea,
+        button:prevThemeSettings.buttonColor,
+        bodyBackgroundImage:prevThemeSettings.bodyBackgroundImage,
+        messageBackgroundImage:prevThemeSettings.messageBackgroundImage,
+      })
+    }
+    else{
+      // default theme
+      this.setState({
+        prevThemeSettings:null,
+        body : '#fff',
+        header : '#4285f4',
+        composer : '#f3f2f4',
+        pane : '#f3f2f4',
+        textarea: '#fff',
+        button: '#4285f4',
+      });
+      let customData='';
+      Object.keys(this.customTheme).forEach((key) => {
+        customData=customData+this.customTheme[key]+','
+      });
+
+      let settingsChanged = {};
+      settingsChanged.theme = 'light';
+      settingsChanged.customThemeValue = customData;
+      if(this.state.bodyBackgroundImage || this.state.messageBackgroundImage) {
+          settingsChanged.backgroundImage = this.state.bodyBackgroundImage + ',' + this.state.messageBackgroundImage;
+      }
+      Actions.settingsChanged(settingsChanged);
+      this.setState({currTheme : 'light'})
+      this.setState({
+        showLogin: false,
+        showSignUp: false,
+        showThemeChanger: false,
+        openForgotPassword: false,
+      });
+    }
   }
 
   // Save Custom Theme settings on server
@@ -335,19 +386,79 @@ class MessageSection extends Component {
     Object.keys(this.customTheme).forEach((key) => {
       customData=customData+this.customTheme[key]+','
     });
-    this.setState({'theme':'custom'})
-    let currSettings = UserPreferencesStore.getPreferences();
+
     let settingsChanged = {};
-    if(currSettings.Theme !=='custom'){
-      settingsChanged.Theme = 'custom';
-      Actions.settingsChanged(settingsChanged);
+    settingsChanged.theme = 'custom';
+    settingsChanged.customThemeValue = customData;
+    if(this.state.bodyBackgroundImage || this.state.messageBackgroundImage) {
+        settingsChanged.backgroundImage = this.state.bodyBackgroundImage + ',' + this.state.messageBackgroundImage;
     }
-    Actions.customThemeChanged(customData);
-    this.handleClose();
+    Actions.settingsChanged(settingsChanged);
+    this.setState({currTheme : 'custom'})
+    this.setState({
+      showLogin: false,
+      showSignUp: false,
+      showThemeChanger: false,
+      openForgotPassword: false,
+    });
+  }
+
+  handleRestoreDefaultThemeClick = () => {
+    this.setState({
+      showLogin: false,
+      showSignUp: false,
+      showThemeChanger: false,
+      openForgotPassword: false,
+    });
+    this.applyLightTheme();
+  }
+
+  applyLightTheme = () =>{
+    this.setState({
+      prevThemeSettings:null,
+      body : '#fff',
+      header : '#4285f4',
+      composer : '#f3f2f4',
+      pane : '#f3f2f4',
+      textarea: '#fff',
+      button: '#4285f4',
+      currTheme : 'light'
+    });
+    let customData='';
+    Object.keys(this.customTheme).forEach((key) => {
+      customData=customData+this.customTheme[key]+','
+    });
+
+    let settingsChanged = {};
+    settingsChanged.theme = 'light';
+    settingsChanged.customThemeValue = customData;
+    if(this.state.bodyBackgroundImage || this.state.messageBackgroundImage) {
+        settingsChanged.backgroundImage = this.state.bodyBackgroundImage + ',' + this.state.messageBackgroundImage;
+    }
+    Actions.settingsChanged(settingsChanged);
   }
 
   handleThemeChanger = () => {
     this.setState({showThemeChanger: true});
+    // save the previous theme settings
+    if(this.state.currTheme==='light'){
+      // remove the previous custom theme memory
+      this.applyLightTheme();
+    }
+    var prevThemeSettings={};
+    var state=this.state;
+    prevThemeSettings.currTheme=state.currTheme;
+    if(state.currTheme==='custom'){
+      prevThemeSettings.bodyColor = state.body;
+      prevThemeSettings.TopBarColor = state.header;
+      prevThemeSettings.composerColor = state.composer;
+      prevThemeSettings.messagePane = state.pane;
+      prevThemeSettings.textArea = state.textarea;
+      prevThemeSettings.buttonColor= state.button;
+      prevThemeSettings.bodyBackgroundImage=state.bodyBackgroundImage;
+      prevThemeSettings.messageBackgroundImage=state.messageBackgroundImage;
+    }
+    this.setState({prevThemeSettings});
     this.child.closeOptions();
   }
 
@@ -395,6 +506,10 @@ class MessageSection extends Component {
     let messages = this.state.messages;
     let markingData = searchMsgs(messages, matchString,
                               this.state.searchState.caseSensitive);
+    // to make the snackbar hide by default
+    this.setState({
+      SnackbarOpenSearchResults: false
+    })
     if(matchString){
       let searchState = {
         markedMsgs: markingData.allmsgs,
@@ -407,6 +522,12 @@ class MessageSection extends Component {
         open: false,
         searchText: matchString
       };
+      if(markingData.markedIDs.length===0 && matchString.trim().length>0){
+        // if no Messages are marked(i.e no result) and the search query is not empty
+        this.setState({
+          SnackbarOpenSearchResults: true
+        })
+      }
       this.setState({
         searchState: searchState
       });
@@ -523,6 +644,29 @@ class MessageSection extends Component {
     })
   }
 
+  invertColorTextArea =() => {
+
+    // get the text are code
+    var hex = this.state.textarea;
+    hex = hex.slice(1);
+
+    // convert 3-digit hex to 6-digits.
+    if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6) {
+        throw new Error('Invalid HEX color.');
+    }
+    var r = parseInt(hex.slice(0, 2), 16),
+        g = parseInt(hex.slice(2, 4), 16),
+        b = parseInt(hex.slice(4, 6), 16);
+
+    return (r * 0.299 + g * 0.587 + b * 0.114) > 186
+        ? '#000000'
+        : '#FFFFFF';
+}
+
+
   render() {
     var bodyColor;
     var TopBarColor;
@@ -530,36 +674,36 @@ class MessageSection extends Component {
     var messagePane;
     var textArea;
     var buttonColor;
+    var textColor;
+
+    switch(this.state.currTheme){
+      case 'custom':{
+        bodyColor = this.state.body;
+        TopBarColor = this.state.header;
+        composerColor = this.state.composer;
+        messagePane = this.state.pane;
+        textArea = this.state.textarea;
+        textColor= this.invertColorTextArea();
+        buttonColor= this.state.button;
+        break;
+      }
+      case 'light':{
+        bodyColor = '#fff';
+        TopBarColor = '#4285f4';
+        composerColor = '#f3f2f4';
+        messagePane = '#f3f2f4';
+        textArea = '#fff';
+        buttonColor = '#4285f4';
+        break;
+      }
+      default:{
+        break;
+      }
+    }
     document.body.style.setProperty('background-color', bodyColor);
-
-      document.body.style.setProperty('background-image', 'url("'+this.state.bodyBackgroundImage+'")');
-      document.body.style.setProperty('background-repeat', 'no-repeat');
-      document.body.style.setProperty('background-size', 'cover');
-
-
-switch(this.state.currTheme){
-  case 'custom':{
-    bodyColor = this.state.body;
-    TopBarColor = this.state.header;
-    composerColor = this.state.composer;
-    messagePane = this.state.pane;
-    textArea = this.state.textarea;
-    buttonColor= this.state.button;
-    break;
-  }
-  case 'light':{
-    bodyColor = '#fff';
-    TopBarColor = '#4285f4';
-    composerColor = '#f3f2f4';
-    messagePane = '#f3f2f4';
-    textArea = '#fff';
-    buttonColor = '#4285f4';
-    break;
-  }
-  default:{
-    break;
-  }
-}
+    document.body.style.setProperty('background-image', 'url("'+this.state.bodyBackgroundImage+'")');
+    document.body.style.setProperty('background-repeat', 'no-repeat');
+    document.body.style.setProperty('background-size', 'cover');
 
     const bodyStyle = {
       padding: 0,
@@ -621,13 +765,13 @@ switch(this.state.currTheme){
       style={{margin:'0 5px'}}
     />
     <RaisedButton
-      label={<Translate text="Done" />}
+      label={<Translate text="Restore To Defaults" />}
       backgroundColor={buttonColor}
       labelColor="#fff"
       width='200px'
       keyboardFocused={true}
-      onTouchTap={this.handleClose}
-
+      onTouchTap={this.handleRestoreDefaultThemeClick}
+      style={{margin:'0 5px'}}
     />
     </div>;
     // Custom Theme feature Component
@@ -642,7 +786,7 @@ switch(this.state.currTheme){
 
     const components = componentsList.map((component) => {
         return <div key={component.id} className='circleChoose'>
-                  <h4><Translate text="Change color of"/> {component.name}:</h4>
+                  <h4><Translate text="Color of"/> {component.name}:</h4>
         <CirclePicker  color={component} width={'100%'}
           colors={['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4',
         '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722', '#795548', '#607d8b',
@@ -773,11 +917,14 @@ switch(this.state.currTheme){
                 }
                 <div className='compose' style={{backgroundColor:composerColor}}>
                   <MessageComposer
+                    focus={true}
                     threadID={this.state.thread.id}
                     dream={dream}
                     textarea={textArea}
+                    textcolor={textColor}
                     speechOutput={speechOutput}
-                    speechOutputAlways={speechOutputAlways} />
+                    speechOutputAlways={speechOutputAlways}
+                    micColor={this.state.button} />
                 </div>
               </div>
             </div>
@@ -794,6 +941,7 @@ switch(this.state.currTheme){
               handleSignUp={this.handleSignUp}
               customSettingsDone={customSettingsDone}
               onRequestClose={()=>this.handleClose}
+              onSaveThemeSettings={()=>this.handleSaveTheme}
               onLoginSignUp={()=>this.handleOpen}
               onForgotPassword={()=>this.forgotPasswordChanged} />
             </div>)
@@ -814,6 +962,17 @@ switch(this.state.currTheme){
                    </Scrollbars>
 
                  </ul>
+                 <div className='compose' style={{backgroundColor:composerColor}}>
+                  <MessageComposer
+                    focus={false}
+                    threadID={this.state.thread.id}
+                    dream={dream}
+                    textarea={textArea}
+                    textcolor={textColor}
+                    speechOutput={speechOutput}
+                    speechOutputAlways={speechOutputAlways}
+                    micColor={this.state.button} />
+                </div>
                </div>
              </div>
              )}
@@ -835,6 +994,11 @@ switch(this.state.currTheme){
               open={this.state.snackopen}
               message={<Translate text={this.state.snackMessage} />}
               />
+              <Snackbar
+               autoHideDuration={4000}
+               open={this.state.SnackbarOpenSearchResults && !this.state.snackopen}
+               message={<Translate text='No Results!' />}
+               />
            </div>
          );
      }

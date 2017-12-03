@@ -17,7 +17,13 @@ let _defaults = {
     SpeechPitch: 1,
     TTSLanguage: 'en-US',
     PrefLanguage : 'en-US',
-    ThemeValues: ''
+    ThemeValues: '',
+    CountryCode: 'US',
+    CountryDialCode: '+1',
+    phoneNo: '',
+    checked: false,
+    serverUrl:'https://api.susi.ai',
+    BackgroundImage : ''
 
 };
 // Store handling all User Preferences
@@ -72,6 +78,10 @@ let UserPreferencesStore = {
         return _defaults.PrefLanguage;
     },
 
+    getBackgroundImage(){
+        return _defaults.BackgroundImage;
+    },
+
     addChangeListener(callback) {
         this.on(CHANGE_EVENT, callback);
     },
@@ -83,14 +93,14 @@ let UserPreferencesStore = {
 };
 
 function checkForFalse ( valueToCheck ){
-    if(valueToCheck==='false'){
+    if(valueToCheck==='false' || !valueToCheck){
         return false;
     }
     return true;
 }
 
 function checkForTrue ( valueToCheck ){
-    if(valueToCheck==='true'){
+    if(valueToCheck==='true' || valueToCheck){
         return true;
     }
     return false;
@@ -108,16 +118,62 @@ UserPreferencesStore.dispatchToken = ChatAppDispatcher.register(action => {
 
         case ActionTypes.SETTINGS_CHANGED: {
             let settings = action.settings;
-            _defaults.Theme = settings.theme;
-            _defaults.EnterAsSend = settings.enterAsSend;
-            _defaults.MicInput = settings.micInput;
-            _defaults.SpeechOutput = settings.speechOutput;
-            _defaults.SpeechOutputAlways = settings.speechOutputAlways;
-            _defaults.SpeechRate = settings.speechRate;
-            _defaults.SpeechPitch = settings.speechPitch;
-            _defaults.TTSLanguage = settings.ttsLanguage;
-            _defaults.PrefLanguage = settings.prefLanguage;
-            _defaults.ThemeValues = settings.custom_theme_value;
+            if(settings.hasOwnProperty('theme')){
+                    _defaults.Theme = settings.theme;
+            }
+            if(settings.hasOwnProperty('enterAsSend')){
+                _defaults.EnterAsSend = checkForFalse(settings.enterAsSend);
+            }
+            if(settings.hasOwnProperty('micInput')){
+                _defaults.MicInput = checkForFalse(settings.micInput);
+            }
+            if(settings.hasOwnProperty('speechOutput')){
+                _defaults.SpeechOutput = checkForFalse(settings.speechOutput);
+            }
+            if(settings.hasOwnProperty('speechOutputAlways')){
+                _defaults.SpeechOutputAlways = checkForTrue(
+                                                settings.speechOutputAlways);
+            }
+            if(settings.hasOwnProperty('speechRate')){
+                let initSpeechRate = parseFloat(settings.speechRate);
+                if(!isNaN(initSpeechRate)){
+                    _defaults.SpeechRate = initSpeechRate;
+                }
+            }
+            if(settings.hasOwnProperty('speechPitch')){
+                let initSpeechPitch = parseFloat(settings.speechPitch);
+                if(!isNaN(initSpeechPitch)){
+                    _defaults.SpeechPitch = initSpeechPitch;
+                }
+            }
+            if(settings.hasOwnProperty('ttsLanguage')){
+              _defaults.TTSLanguage = settings.ttsLanguage;
+            }
+            if(settings.hasOwnProperty('prefLanguage')){
+              _defaults.PrefLanguage = settings.prefLanguage;
+            }
+            if(settings.hasOwnProperty('customThemeValue')){
+                _defaults.ThemeValues = settings.customThemeValue;
+            }
+            if(settings.hasOwnProperty('checked')){
+                _defaults.checked = settings.checked;
+            }
+            if(settings.hasOwnProperty('serverUrl')){
+                _defaults.serverUrl = settings.serverUrl;
+            }
+            if(settings.hasOwnProperty('countryDialCode')){
+                _defaults.CountryDialCode = settings.countryDialCode;
+            }
+            if(settings.hasOwnProperty('phoneNo')){
+                _defaults.PhoneNo = settings.phoneNo;
+            }
+            if(settings.hasOwnProperty('countryCode')){
+                _defaults.CountryCode = settings.countryCode;
+            }
+
+            if(settings.hasOwnProperty('backgroundImage')){
+                _defaults.BackgroundImage = settings.backgroundImage;
+            }
             UserPreferencesStore.emitChange();
             break;
         }
@@ -135,13 +191,18 @@ UserPreferencesStore.dispatchToken = ChatAppDispatcher.register(action => {
                 _defaults.TTSLanguage = settings.ttsLanguage;
                 _defaults.PrefLanguage = settings.prefLanguage;
                 _defaults.ThemeValues = settings.customThemeValue;
+                _defaults.checked = settings.checked;
+                _defaults.serverUrl = settings.serverUrl;
+                _defaults.phoneNo= settings.phoneNo;
+                _defaults.countryCode = settings.countryCode;
+                _defaults.BackgroundImage = settings.backgroundImage;
             }
             else{
                 if(settings.hasOwnProperty('theme')){
                     _defaults.Theme = settings.theme;
                 }
-                if(settings.hasOwnProperty('enterAssend')){
-                    _defaults.EnterAsSend = checkForFalse(settings.enterAssend);
+                if(settings.hasOwnProperty('enterAsSend')){
+                    _defaults.EnterAsSend = checkForFalse(settings.enterAsSend);
                 }
                 if(settings.hasOwnProperty('micInput')){
                     _defaults.MicInput = checkForFalse(settings.micInput);
@@ -173,6 +234,30 @@ UserPreferencesStore.dispatchToken = ChatAppDispatcher.register(action => {
                 }
                 if(settings.hasOwnProperty('customThemeValue')){
                     _defaults.ThemeValues = settings.customThemeValue;
+                }
+                if(settings.hasOwnProperty('countryDialCode')){
+                    _defaults.CountryDialCode = settings.countryDialCode;
+                }
+                if(settings.hasOwnProperty('phoneNo')){
+                    _defaults.PhoneNo = settings.phoneNo;
+                }
+                if(settings.hasOwnProperty('countryCode')){
+                    _defaults.CountryCode = settings.countryCode;
+                }
+                if(settings.hasOwnProperty('backgroundImage')){
+                    _defaults.BackgroundImage = settings.backgroundImage;
+                }
+                if(settings.hasOwnProperty('checked')){
+                    _defaults.checked = settings.checked;
+                }
+                else{
+                    _defaults.checked = false;
+                }
+                if(settings.hasOwnProperty('serverUrl')){
+                    _defaults.serverUrl = settings.serverUrl;
+                }
+                else{
+                    _defaults.serverUrl = '';
                 }
             }
             UserPreferencesStore.emitChange();

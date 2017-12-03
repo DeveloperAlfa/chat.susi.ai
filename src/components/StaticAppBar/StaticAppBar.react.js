@@ -133,7 +133,7 @@ class StaticAppBar extends Component {
             this.props.closeVideo();
         }
     }
-    // Hanlde scroll events
+    // Handle scroll events
     handleScroll = (event) => {
         let scrollTop = event.srcElement.body.scrollTop,
             itemTranslate = scrollTop > 60;
@@ -316,31 +316,31 @@ class StaticAppBar extends Component {
         }
         var topLinks = [
             {
-                lable: 'Overview',
+                label: 'Overview',
                 url: '/overview',
                 style: linkstyle,
                 labelStyle: labelStyle
             },
             {
-                lable: 'Devices',
+                label: 'Devices',
                 url: '/devices',
                 style: linkstyle,
                 labelStyle: labelStyle
             },
             {
-                lable: 'Blog',
+                label: 'Blog',
                 url: '/blog',
                 style: linkstyle,
                 labelStyle: labelStyle
             },
             {
-                lable: 'Team',
+                label: 'Team',
                 url: '/team',
                 style: linkstyle,
                 labelStyle: labelStyle
             },
             {
-                lable: 'Support',
+                label: 'Support',
                 url: '/support',
                 style: linkstyle,
                 labelStyle: labelStyle
@@ -362,7 +362,7 @@ class StaticAppBar extends Component {
                 };
             }
             return (
-                 <Link key={i} to={link.url} style={link.labelStyle}>{link.lable}</Link>
+                 <Link key={i} to={link.url} style={link.labelStyle}>{link.label}</Link>
 
             )
         });
@@ -379,7 +379,7 @@ class StaticAppBar extends Component {
             }
             return (
                 <MenuItem key={i} onTouchTap={this.handleDrawerClose} className="drawerItem">
-                    <Link to={link.url}>{link.lable}</Link>
+                    <Link to={link.url}>{link.label}</Link>
                 </MenuItem>
             )
         });
@@ -391,9 +391,8 @@ class StaticAppBar extends Component {
                 </div>
             </div>
         );
-
+        const themeBackgroundColor = this.props.settings && this.props.settings.theme==='dark'?'rgb(25, 50, 76)':'#4285f4';
         return (
-
             <div>
                 <header className="nav-down" >
                     <AppBar
@@ -403,7 +402,7 @@ class StaticAppBar extends Component {
                         title={<div id="rightIconButton"><Link to='/' style={{ float: 'left', marginTop: '-10px',height:'25px',width:'122px' }}>
                             <img src={susiWhite} alt="susi-logo" className="siteTitle" /></Link><TopMenu /></div>}
                         style={{
-                            backgroundColor: '#4285f4', height: '46px',
+                            backgroundColor: themeBackgroundColor, height: '46px',
                             boxShadow: 'none'
                         }}
 						showMenuIconButton={showLeftMenu!=='none'}
@@ -477,6 +476,7 @@ class StaticAppBar extends Component {
 }
 StaticAppBar.propTypes = {
     history: PropTypes.object,
+    settings: PropTypes.object,
     location: PropTypes.object,
     closeVideo: PropTypes.func
 }
